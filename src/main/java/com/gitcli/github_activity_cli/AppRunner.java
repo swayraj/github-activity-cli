@@ -6,15 +6,37 @@ import org.springframework.stereotype.Component;
 @Component
 public class AppRunner implements CommandLineRunner {
 
-    @Override
-    public void run(String...  args) throws Exception
-    {
-        System.out.println("Hello from Command Line Runner");
+    private final GitHubService gitHubService;
 
-        if (args.length > 0) {
-            System.out.println("You passed in this argument: " + args[0]);
-        } else {
-            System.out.println("No arguments passed.");
+    public AppRunner(GitHubService gitHubService)
+    {
+        this.gitHubService = gitHubService;
+    }
+
+    @Override
+    public void run(String... args) throws Exception
+    {
+        if(args.length == 0)
+        {
+            System.err.println("Error: Please provide a GitHub username.");
+            System.out.println("Usage: java -jar app.jar <username>");
+            return;
         }
+
+        String username = args[0];
+        System.out.println("Fetching activity for user: " + username);
+
+        try
+        {
+            String jsonResponse = gitHubService.fetchUserEvents(username);
+            System.out.println("--- RAW JSON RESPONSE ---");
+            System.out.println(jsonResponse);
+        }
+        catch (Exception e)
+        {
+            System.err.println("An error occurred: " + e.getMessage());
+            e.printStackTrace();
+        }
+
     }
 }
