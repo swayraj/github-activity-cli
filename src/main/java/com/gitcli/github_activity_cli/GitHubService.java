@@ -13,16 +13,15 @@ import java.time.Duration;
 import java.util.List;
 
 @Service
-public class GitHubService{
+public class GitHubService {
 
     private static final String GITHUB_API_URL = "https://api.github.com/users/";
 
-    private HttpClient httpClient;
+    private final HttpClient httpClient;
 
     private final ObjectMapper objectMapper;
 
-    public GitHubService(ObjectMapper objectMapper)
-    {
+    public GitHubService(ObjectMapper objectMapper) {
         this.httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .connectTimeout(Duration.ofSeconds(10))
@@ -31,9 +30,8 @@ public class GitHubService{
         this.objectMapper = objectMapper;
     }
 
-    public List<GitHubEvent> fetchUserEvents(String username) throws IOException, InterruptedException
-    {
-        String url = GITHUB_API_URL+ username + "/events";
+    public List<GitHubEvent> fetchUserEvents(String username) throws IOException, InterruptedException {
+        String url = GITHUB_API_URL + username + "/events";
         URI uri = URI.create(url);
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -45,12 +43,21 @@ public class GitHubService{
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        if(response.statusCode() != 200)
-        {
-            System.err.println("Error: Received non-200 response:" + response.statusCode());
+        // --- NEW ERROR HANDLING ---
 
+        //Specifically check for 404 (Not Found)
+        if (response.statusCode() == 404) {
+            throw new UserNotFoundException(username);
+        }
+
+        //Check for any other non-successful status
+        if (response.statusCode() != 200) {
+            // Generic error for other issues (e.g., 500, 403 Rate Limit)
+            System.err.println("Error: Received non-200 response:" + response.statusCode());
+            // For now, we still return an empty list for these
             return List.of();
         }
+
 
         String jsonResponse = response.body();
 
