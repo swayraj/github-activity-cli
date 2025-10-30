@@ -4,8 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional; // This import is now used
-
+import java.util.Optional;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -34,17 +33,12 @@ public class GitHubService {
 
     public List<GitHubEvent> fetchUserEvents(String username) throws IOException, InterruptedException {
 
-        // --- 1. TRY TO GET FROM CACHE FIRST ---
         Optional<String> cachedResponse = cacheService.get(username);
-
         if (cachedResponse.isPresent()) {
-            // If the cache is present and fresh, parse it and return.
-            // We skip the API call entirely.
             return objectMapper.readValue(cachedResponse.get(), new TypeReference<List<GitHubEvent>>() {});
         }
 
-        // --- 2. IF CACHE MISS, CALL THE API ---
-        // (Log line moved here, so it only prints on a cache miss)
+        // --- LOGGING IS BACK IN THIS FILE ---
         System.out.println(">>> Calling GitHub API for user: " + username);
 
         String url = GITHUB_API_URL + username + "/events";
@@ -59,7 +53,6 @@ public class GitHubService {
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        // --- ERROR HANDLING (NO CHANGE) ---
         if (response.statusCode() == 404) {
             throw new UserNotFoundException(username);
         }
@@ -69,11 +62,7 @@ public class GitHubService {
         }
 
         String jsonResponse = response.body();
-
-        // --- 3. SAVE THE NEW RESPONSE TO CACHE ---
         cacheService.set(username, jsonResponse);
-
-        // --- 4. PARSE AND RETURN ---
         return objectMapper.readValue(jsonResponse, new TypeReference<List<GitHubEvent>>() {});
     }
 }
